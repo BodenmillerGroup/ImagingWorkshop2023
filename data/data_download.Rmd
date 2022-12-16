@@ -1,0 +1,66 @@
+---
+title: "Data download"
+author: "Nils Eling"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+For session 2, we will download IMC example data to highlight the use of the
+`steinbock` framework for image processing.
+
+```{r download-raw, message=FALSE, warning=FALSE}
+if (!dir.exists("data/raw")) dir.create("data/raw")
+download.file("https://zenodo.org/record/7412972/files/panel.csv", 
+              "data/panel.csv")
+download.file("https://zenodo.org/record/5949116/files/Patient1.zip",
+              "data/raw/Patient1.zip")
+download.file("https://zenodo.org/record/5949116/files/Patient2.zip",
+              "data/raw/Patient2.zip")
+download.file("https://zenodo.org/record/5949116/files/Patient3.zip",
+              "data/raw/Patient3.zip")
+download.file("https://zenodo.org/record/5949116/files/Patient4.zip",
+              "data/raw/Patient4.zip")
+```
+
+If you can't use `steinbock` for image processing we also provide the resuting
+files for download:
+
+```{r download-steinbock}
+# download intensities
+url <- "https://zenodo.org/record/7412972/files/intensities.zip"
+destfile <- "data/intensities.zip"
+download.file(url, destfile)
+unzip(destfile, exdir="data", overwrite=TRUE)
+unlink(destfile)
+# download regionprops
+url <- "https://zenodo.org/record/7412972/files/regionprops.zip"
+destfile <- "data/regionprops.zip"
+download.file(url, destfile)
+unzip(destfile, exdir="data", overwrite=TRUE)
+unlink(destfile)
+# download neighbors
+url <- "https://zenodo.org/record/7412972/files/neighbors.zip"
+destfile <- "data/neighbors.zip"
+download.file(url, destfile)
+unzip(destfile, exdir="data", overwrite=TRUE)
+unlink(destfile)
+# download images
+url <- "https://zenodo.org/record/7412972/files/img.zip"
+destfile <- "data/img.zip"
+download.file(url, destfile)
+unzip(destfile, exdir="data", overwrite=TRUE)
+unlink(destfile)
+# download masks
+url <- "https://zenodo.org/record/7412972/files/masks_deepcell.zip"
+destfile <- "data/masks_deepcell.zip"
+download.file(url, destfile)
+unzip(destfile, exdir="data", overwrite=TRUE)
+unlink(destfile)
+# download individual files
+download.file("https://zenodo.org/record/7412972/files/images.csv", 
+              "data/images.csv")
+```
