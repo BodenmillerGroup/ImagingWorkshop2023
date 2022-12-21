@@ -19,12 +19,14 @@ or you can click the `Code` > `Download ZIP` button.
 
 ## Installation instructions
 
-Please follow the instrauctions in the [Setup](Setup) folder on how to install the needed software.
+Please follow the instructions in the [Setup](Setup) folder on how to install the needed software.
 
 ## Data download
 
-The [data/data_download.R] script allows you to download all needed data.
+The `data_download.R` script in the [data](data) folder allows you to download all needed data.
 
 ## Follow along
+
+Session 3-5 will be conducted in R. The R markdown scripts can be found in the individual folder. Please always ensure that you open the `ImagingWorkshop.Rproj` file before starting the session.
 
 ## Further resources
