@@ -1,3 +1,10 @@
 *.DS_Store
 .Rproj.user
 data/steinbock/*
+data/compensation/*
+data/gated_cells/*
+data/images.rds
+data/masks.rds
+data/spe.rds
+data/CellValidation/*
+data/sm.csv
