@@ -1,0 +1,1089 @@
+---
+title: "Session 4: single-cell analysis"
+author: "Nils Eling"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Session 4 of the Multiplexed Tissue Imaging Workshop focuses on single-cell
+analysis and pre-prcessing. The first section will demonstrate how to perform
+spillover correction before highlighting a batch correction approach and
+cell phenotyping.
+
+# Spillover correction
+
+Small levels of channel-to-channel spillover occurs specifically in IMC
+which can be corrected for assuming a linear relationship between the 
+signal of one channel and the signal of the neighboring channel.
+
+This section highlights how to generate a spillover matrix from individually
+acquired single metal spots on an agarose slide. Each spot needs to be imaged as
+its own acquisition/ROI and individual TXT files containing the pixel
+intensities per spot need to be available. For complete details on the spillover
+correction approach, please refer to [the original
+publication](https://www.cell.com/cell-systems/fulltext/S2405-4712(18)30063-2)
+
+When downloading the data you retrieved an MCD file which contains individually 
+measured metal spots.
+
+In brief, the highlighted workflow comprises 5 steps:
+
+1. Reading in the data
+2. Quality control 
+3. (Optional) pixel binning
+4. "Debarcoding" for pixel assignment
+5. Pixel selection for spillover matrix estimation
+6. Spillover matrix generation
+7. Saving the results
+8. Single-cell compensation
+9. Image compensation
+
+## Generate the spillover matrix
+
+In the first step, we will generate a spillover matrix based on the single-metal
+spots and save it for later use.
+
+### Read in the data
+
+Here, we will read in the individual TXT files into a `SingleCellExperiment`
+object. This object can be used directly by the `CATALYST` package to estimate
+the spillover.
+
+For this to work, the .txt file names need to contain the spotted metal isotope
+name. By default, the first occurrence of the isotope in the format `(mt)(mass)`
+(e.g. `Sm152` for Samarium isotope with the atomic mass 152) will be used as
+spot identifier. Alternatively, a named list of already read-in pixel intensities
+can be provided. For more inforation, please refer to the man page `?readSCEfromTXT`.
+
+For further downstream analysis, we will asinh-transform the data using a
+cofactor of 5; a common transformation for CyTOF data.
+
+```{r read-txts, message=FALSE}
+library(imcRtools)
+
+# Create SingleCellExperiment from .txt files
+sce <- readSCEfromTXT("data/compensation/") 
+assay(sce, "exprs") <- asinh(counts(sce)/5)
+```
+
+### Quality control
+
+In the next step, we will observe the median pixel intensities per spot and
+threshold on medians < 200 counts.
+These types of visualization serve two purposes:
+
+1. Small median pixel intensities (< 200 counts) might hinder the robust
+estimation of the channel spillover. In that case, consecutive pixels can be
+summed (see [Optional pixel binning](#pixel_binning)).
+
+2. Each spotted metal (row) should show the highest median pixel intensity in its
+corresponding channel (column). If this is not the case, either the naming of the
+.txt files was incorrect or the incorrect metal was spotted.
+
+```{r QC-heatmap, message = FALSE, fig.width=7, fig.height=7}
+# Log10 median pixel counts per spot and channel
+plotSpotHeatmap(sce)
+
+# Thresholded on 200 pixel counts
+plotSpotHeatmap(sce, log = FALSE, threshold = 200)
+```
+
+As we can see, all median pixel intensities are > 200 counts for each spot.
+We also observe acquired channels for which no spot was placed (Xe134, Ir191, Ir193). 
+
+### Optional pixel binning {#pixel_binning}
+
+In cases where median pixel intensities are low (< 200 counts), consecutive
+pixels can be summed to increase the robustness of the spillover estimation.
+The `imcRtools` package provides the `binAcrossPixels` function,
+which performs aggregation for each channel across `bin_size` consecutive pixels 
+per spotted metal.
+
+```{r binning, message=FALSE, fig.width=7, fig.height=7}
+# Define grouping
+bin_size = 10
+
+sce2 <- binAcrossPixels(sce, bin_size = bin_size)
+
+# Log10 median pixel counts per spot and channel
+plotSpotHeatmap(sce2)
+
+# Thresholded on 200 pixel counts
+plotSpotHeatmap(sce2, log = FALSE, threshold = 200)
+```
+
+Here, we can see an increase in the median pixel intensities and accumulation of
+off-diagonal signal. Due to already high original pixel intensities, we will
+refrain from aggregating across consecutive pixels for this demonstration.
+
+### Filtering incorrectly assigned pixels
+
+The following step uses functions provided by the `CATALYST` package to
+"debarcode" the pixels. Based on the intensity distribution of all channels,
+pixels are assigned to their corresponding barcode; here this is the already
+known metal spot. This procedure serves the purpose to identify pixels that
+cannot be robustly assigned to the spotted metal. Pixels of such kind can be
+regarded as "noisy", "background" or "artefacts" that should be removed prior to
+spillover estimation.
+
+We will also need to specify which channels were spotted (argument `bc_key`).
+This information is directly contained in the `colData(sce)` slot.
+To facilitate visualization, we will order the `bc_key` by mass.
+
+The general workflow for pixel debarcoding is as follows:
+
+1. assign a preliminary metal mass to each pixel
+2. for each pixel, estimate a cutoff parameter for the distance between 
+positive and negative pixel sets
+3. apply the estimated cutoffs to identify truly positive pixels
+
+```{r debarcoding, message=FALSE}
+library(CATALYST)
+
+bc_key <- as.numeric(unique(sce$sample_mass))
+bc_key <- bc_key[order(bc_key)]
+
+sce <- assignPrelim(sce, bc_key = bc_key)
+sce <- estCutoffs(sce)
+sce <- applyCutoffs(sce)
+```
+
+The obtained `SingleCellExperiment` now contains the additional `bc_id` entry.
+For each pixel, this vector indicates the assigned mass (e.g. `161`) or
+`0`, meaning unassigned. 
+
+This information can be visualized in form of a heatmap:
+
+```{r assignment-heatmap, fig.width=7, fig.height=7}
+library(pheatmap)
+cur_table <- table(sce$bc_id, sce$sample_mass)
+
+pheatmap(log10(cur_table + 1),
+         cluster_rows = FALSE,
+         cluster_cols = FALSE)
+```
+
+We can see here, that all pixels were assigned to the right mass and that all
+pixel sets are made up of > 1000 pixels.
+
+However, in cases where incorrect assignment occurred or where few pixels were
+measured for some spots, the `imcRtools` package exports a simple helper
+function to exclude pixels based on these criteria:
+
+```{r pixel-filtering}
+sce <- filterPixels(sce, minevents = 40, correct_pixels = TRUE)
+```
+
+### Compute spillover matrix
+
+Based on the single-positive pixels, we use the `CATALYST::computeSpillmat()`
+function to compute the spillover matrix and `CATALYST::plotSpillmat()` to
+visualize it. The `plotSpillmat` function checks the spotted and acquired
+metal isotopes against a pre-defined `CATALYST::isotope_list()`. In this data,
+the `Ar80` channel was additionally acquired to check for deviations in signal
+intensity. `Ar80` needs to be added to a custom `isotope_list` object for
+visualization.
+
+```{r compute-spillover, fig.width=7, fig.height=7}
+sce <- computeSpillmat(sce)
+
+isotope_list <- CATALYST::isotope_list
+isotope_list$Ar <- 80
+
+plotSpillmat(sce, isotope_list = isotope_list)
+
+# Save spillover matrix in new object
+sm <- metadata(sce)$spillover_matrix
+```
+
+**Of note: the visualization of the spillover matrix using CATALYST does currently
+not visualize spillover between the larger channels.** In this case, the 
+spillover matrix is clipped at Yb171.
+
+As we can see, the largest spillover appears in `In113 --> In115` and we also
+observe the `+16` oxide impurities for e.g. `Nd148 --> Dy164`.
+
+We can save the spillover matrix for external use.
+
+```{r save-sm, message=FALSE}
+write.csv(sm, "data/sm.csv")
+```
+
+## Single-cell data compensation
+
+The `CATALYST` package can be used to perform spillover compensation on the
+**single-cell mean intensities**. Here, the `SpatialExperiment` object generated
+in Section \@ref(read-data) is read in. The `CATALYST` package requires an entry
+to `rowData(spe)$channel_name` for the `compCytof` function to run. This entry
+should contain the metal isotopes in the form (mt)(mass)Di (e.g., `Sm152Di` for
+Samarium isotope with the atomic mass 152). 
+
+The `compCytof` function performs channel spillover compensation on the mean
+pixel intensities per channel and cell. Here, we will not overwrite the assays
+in the `SpatialExperiment` object to later highlight the effect of compensation.
+As shown in Section \@ref(read-data), also the compensated counts are
+asinh-transformed using a cofactor of 1.
+
+```{r single-cell-compensation}
+spe <- readRDS("data/spe.rds")
+rowData(spe)$channel_name <- paste0(rowData(spe)$channel, "Di")
+
+spe <- compCytof(spe, sm, 
+                 transform = TRUE, cofactor = 1,
+                 isotope_list = isotope_list, 
+                 overwrite = FALSE)
+```
+
+To check the effect of channel spillover compensation, the expression of markers
+that are affected by spillover (e.g., E cadherin in channel Yb173 and CD303 in
+channel Yb174) can be visualized in form of scatter plots before and after
+compensation.
+
+```{r visualize-single-cell-spillover, message=FALSE}
+library(dittoSeq)
+library(patchwork)
+before <- dittoScatterPlot(spe, x.var = "Ecad", y.var = "CD303",
+                           assay.x = "exprs", assay.y = "exprs") +
+    ggtitle("Before compensation")
+
+after <- dittoScatterPlot(spe, x.var = "Ecad", y.var = "CD303",
+                          assay.x = "compexprs", assay.y = "compexprs") +
+    ggtitle("After compensation")
+before + after
+```
+
+We observe that the spillover Yb173 --> Yb174 was successfully corrected.
+To facilitate further downstream analysis, the non-compensated assays can now be
+replaced by their compensated counterparts:
+
+```{r overwrite-assays}
+assay(spe, "counts") <- assay(spe, "compcounts") 
+assay(spe, "exprs") <- assay(spe, "compexprs") 
+assay(spe, "compcounts") <- assay(spe, "compexprs") <- NULL
+```
+
+## Image compensation
+
+The [cytomapper](https://github.com/BodenmillerGroup/cytomapper) package allows channel
+spillover compensation directly on **multi-channel images**. 
+The `compImage` function takes a `CytoImageList` object and the estimated
+spillover matrix as input. More info on how to work with `CytoImageList`
+objects can be seen in Section \@ref(image-visualization).
+
+At this point, we can read in the `CytoImageList` object containing multi-channel
+images as generated in Section \@ref(read-data).
+The `channelNames` need to be set according to their metal isotope in the form
+(mt)(mass)Di and therefore match `colnames(sm)`.
+
+```{r read-in-image, message=FALSE}
+library(cytomapper)
+
+images <- readRDS("data/images.rds")
+masks <- readRDS("data/masks.rds")
+channelNames(images) <- rowData(spe)$channel_name
+```
+
+The CATALYST package provides the `adaptSpillmat` function that corrects the
+spillover matrix in a way that rows and columns match a predefined set of
+metals. Please refer to `?compCytof` for more information how metals in the
+spillover matrix are matched to acquired channels in the `SingleCellExperiment`
+object.
+
+The spillover matrix can now be adapted to exclude channels that are not part of
+the measurement (`keep == 0`).
+
+```{r}
+library(tiff)
+panel <- read.csv("data/steinbock/panel.csv")
+adapted_sm <- adaptSpillmat(sm, paste0(panel$channel[panel$keep == 1], "Di"), 
+                            isotope_list = isotope_list)
+```
+
+The adpated spillover matrix now matches the `channelNames` of the
+`CytoImageList` object and can be used to perform pixel-level spillover
+compensation.
+
+```{r image-compensation, message = FALSE}
+library(BiocParallel)
+library(parallel)
+
+images_comp <- compImage(images, adapted_sm, 
+                         BPPARAM = MulticoreParam())
+```
+
+As a sanity check, we will visualize the image before and after compensation:
+
+```{r image-visualization}
+# Before compensation
+plotPixels(images[5], colour_by = "Yb173Di", 
+           image_title = list(text = "Yb173 (Ecad) - before", position = "topleft"), 
+           legend = NULL, bcg = list(Yb173Di = c(0, 4, 1)))
+plotPixels(images[5], colour_by = "Yb174Di", 
+           image_title = list(text = "Yb174 (CD303) - before", position = "topleft"), 
+           legend = NULL, bcg = list(Yb174Di = c(0, 4, 1)))
+
+# After compensation
+plotPixels(images_comp[5], colour_by = "Yb173Di",
+           image_title = list(text = "Yb173 (Ecad) - after", position = "topleft"), 
+           legend = NULL, bcg = list(Yb173Di = c(0, 4, 1)))
+plotPixels(images_comp[5], colour_by = "Yb174Di", 
+           image_title = list(text = "Yb174 (CD303) - after", position = "topleft"),
+           legend = NULL, bcg = list(Yb174Di = c(0, 4, 1)))
+```
+
+For convenience, we will re-set the `channelNames` to their biological targtes:
+
+```{r re-set-channels}
+channelNames(images_comp) <- rownames(spe)
+```
+
+# Batch correction
+
+In the previous Session we observed staining/expression differences between the
+individual samples. This can arise due to technical (e.g., differences in sample
+processing) as well as biological (e.g. differential expression between
+patients/indications) reasons. However, the combination of these effects may
+hinder cell phenotyping via clustering.
+
+To integrate cells across samples, we can use computational
+strategies developed for correcting batch effects in single-cell RNA sequencing
+data. Computational tools in R that perform those corrections include 
+[batchelor](https://www.bioconductor.org/packages/release/bioc/html/batchelor.html),
+[harmony](https://github.com/immunogenomics/harmony) and
+[Seurat](https://satijalab.org/seurat/articles/integration_introduction.html).
+Due to time constrains, we only highlight the `batchelor` package for batch 
+correction.
+
+Of note: the correction approaches presented here aim at removing any
+differences between samples. This will also remove biological differences
+between the patients/indications. Nevertheless, integrating cells across samples
+can facilitate the detection of cell phenotypes via clustering.
+
+## fastMNN correction
+
+The `batchelor` package provides the `mnnCorrect` and `fastMNN` functions to
+correct for differences between samples/batches. Both functions build up on
+finding mutual nearest neighbors (MNN) among the cells of different samples and
+correct expression differences between the cells. The `mnnCorrect` function 
+returns corrected expression counts while the `fastMNN` functions performs the 
+correction in reduced dimension space. As such, `fastMNN` returns integrated
+cells in form of a low dimensional embedding.
+
+Paper: [Batch effects in single-cell RNA-sequencing data are corrected by matching mutual nearest neighbors](https://www.nature.com/articles/nbt.4091)  
+Documentation: [batchelor](https://www.bioconductor.org/packages/release/bioc/vignettes/batchelor/inst/doc/correction.html)
+
+### Perform sample correction
+
+Here, we apply the `fastMNN` function to integrate cells between 
+patients. By setting `auto.merge = TRUE` the function estimates the best 
+batch merging order by maximizing the number of MNN pairs at each merging step. 
+This is more time consuming than merging sequentially based on how batches appear in the 
+dataset (default). We again select the markers defined in Section \@ref(cell-processing)
+for sample correction.
+
+The function returns a `SingleCellExperiment` object which contains corrected
+low-dimensional coordinates for each cell in the `reducedDim(out, "corrected")`
+slot. This low-dimensional embedding can be further used for clustering and
+non-linear dimensionality reduction. We transfer the corrected coordinates
+to the main `SpatialExperiment` object.
+
+```{r batch-correction-fastMNN, message=FALSE, warning=FALSE}
+library(batchelor)
+set.seed(220228)
+out <- fastMNN(spe, batch = spe$patient_id,
+               auto.merge = TRUE,
+               subset.row = rowData(spe)$use_channel,
+               assay.type = "exprs")
+
+# Transfer the correction results to the main spe object
+reducedDim(spe, "fastMNN") <- reducedDim(out, "corrected")
+```
+
+### Quality control of correction results
+
+The `fastMNN` function further returns outputs that can be used to assess the
+quality of the batch correction. The `metadata(out)$merge.info` entry collects
+diagnostics for each individual merging step. Here, the `batch.size` and
+`lost.var` entries are important. The `batch.size` entry reports the relative
+magnitude of the batch effect and the `lost.var` entry represents the percentage
+of lost variance per merging step. A large `batch.size` and low `lost.var`
+indicate sufficient batch correction.
+
+```{r batch-correction-fastMNN-QC, message=FALSE}
+merge_info <- metadata(out)$merge.info 
+
+DataFrame(left = merge_info$left,
+          right = merge_info$right,
+          batch.size = merge_info$batch.size,
+          max_lost_var = rowMax(merge_info$lost.var))
+```
+
+We observe that Patient4 and Patient2 are most similar with a low batch effect. 
+Merging cells of Patient3 into the combined batch of Patient1,
+Patient2 and Patient4 resulted in the highest percentage of lost variance and
+the detection of the largest batch effect. In the next paragraph we can
+visualize the correction results.
+
+### Visualization
+
+The simplest option to check if the sample effects were corrected is by using
+non-linear dimensionality reduction techniques and observe mixing of cells across
+samples. We will recompute the UMAP embedding using the corrected
+low-dimensional coordinates for each cell.
+
+```{r dimred-batch-correction-fastMNN, message=FALSE, warning=FALSE}
+library(scater)
+
+set.seed(220228)
+spe <- runUMAP(spe, dimred= "fastMNN", name = "UMAP_mnnCorrected") 
+```
+
+Next, we visualize the corrected UMAP while overlaying patient IDs.
+
+```{r visualizing-batch-correction-fastMNN-1, message=FALSE, warning=FALSE, fig.height=3}
+library(cowplot)
+library(dittoSeq)
+library(viridis)
+
+# visualize patient id 
+p1 <- dittoDimPlot(spe, var = "patient_id", 
+                   reduction.use = "UMAP", size = 0.2) + 
+    scale_color_manual(values = metadata(spe)$color_vectors$patient_id) +
+    ggtitle("Patient ID on UMAP before correction")
+p2 <- dittoDimPlot(spe, var = "patient_id", 
+                   reduction.use = "UMAP_mnnCorrected", size = 0.2) + 
+    scale_color_manual(values = metadata(spe)$color_vectors$patient_id) +
+    ggtitle("Patient ID on UMAP after correction")
+
+plot_grid(p1, p2)
+```
+
+We observe an imperfect merging of Patient3 into all other samples. This
+was already seen when displaying the merging information above.
+We now also visualize the expression of selected markers across all cells 
+before and after batch correction.
+
+```{r visualizing-batch-correction-fastMNN-2, warning=FALSE, message=FALSE, fig.height=8}
+markers <- c("Ecad", "CD45RO", "CD20", "CD3", "FOXP3", "CD206", "MPO", "SMA", "Ki67")
+
+# Before correction
+plot_list <- multi_dittoDimPlot(spe, var = markers, reduction.use = "UMAP", 
+                   assay = "exprs", size = 0.2, list.out = TRUE) 
+plot_list <- lapply(plot_list, function(x) x + scale_color_viridis())
+plot_grid(plotlist = plot_list) 
+
+# After correction
+plot_list <- multi_dittoDimPlot(spe, var = markers, reduction.use = "UMAP_mnnCorrected", 
+                   assay = "exprs", size = 0.2, list.out = TRUE) 
+plot_list <- lapply(plot_list, function(x) x + scale_color_viridis())
+plot_grid(plotlist = plot_list) 
+```
+
+We observe that immune cells across patients are merged after batch correction 
+using `fastMNN`. However, the tumor cells of different patients still cluster
+separately.
+
+# Cell phenotyping 
+
+A common step during single-cell data analysis is the annotation of cells based
+on their phenotype. Defining cell phenotypes is often subjective and relies
+on previous biological knowledge. The [Orchestrating Single Cell Analysis with Bioconductor](https://bioconductor.org/books/3.14/OSCA.basic/cell-type-annotation.html) book
+presents a number of approaches to phenotype cells detected by single-cell RNA
+sequencing based on reference datasets or prior knowledge of geneset importance.
+
+In highly-multiplexed imaging, target proteins or molecules are manually
+selected based on the biological question at hand. It narrows down the feature
+space and facilitates the manual annotation of clusters to derive cell
+phenotypes. We will therefore highlight the use of one clustering
+approache to group cells based on their similarity in marker expression.
+
+Unlike single-cell RNA sequencing or CyTOF data, single-cell data derived from
+highly-multiplexed imaging data often suffers from "lateral spillover" between
+neighboring cells. This spillover caused by imperfect segmentation often hinders
+accurate clustering to define specific cell phenotypes in multiplexed imaging
+data. In Section \@ref(classification) we will train and apply a random
+forest classifier to classify cell phenotypes in the dataset as alternative
+approach for clustering-based cell phenotyping. This approach has been previously used to
+identify major cell phenotypes in metastatic melanoma and avoids clustering of
+cells.
+
+We will first sample 2000 cells to visualize cluster membership.
+
+```{r read-data-pheno, message=FALSE}
+# Sample cells
+set.seed(220619)
+cur_cells <- sample(seq_len(ncol(spe)), 2000)
+```
+
+## Clustering approaches {#clustering}
+
+In the first section to identify cellular phenotypes in the dataset, we will
+present a popular clustering approache that groups cells based on their similarity in
+marker expression. A number of approaches have been developed to cluster data
+derived from single-cell RNA sequencing technologies [@Yu2022] or CyTOF
+[@Weber2016]. For demonstration purposes, we will only highlight the `Phenograph`
+clustering approach. For a full overview on different clustering approaches,
+please refer to the [Phenotyping](TODO) section of the online book.
+
+### Rphenograph
+
+The PhenoGraph clustering approach was first described to group cells of a CyTOF
+dataset [@Levine2015]. The algorithm first constructs a graph by detecting the
+`k` nearest neighbours based on euclidean distance in expression space. In the
+next step, edges between nodes (cells) are weighted by their overlap in nearest
+neighbor sets. To quantify the overlap in shared nearest neighbor sets, the
+jaccard index is used. The Louvain modularity optimization approach is used to
+detect connected communities and partition the graph into clusters of cells.
+This clustering strategy was used by Jackson, Fischer _et al._  and Schulz _et
+al._ to cluster IMC data [@Jackson2020; @Schulz2018].
+
+There are several different PhenoGraph implementations available in R. Here, we
+use the one available at
+[https://github.com/i-cyto/Rphenograph](https://github.com/i-cyto/Rphenograph).
+For large datasets,
+[https://github.com/stuchly/Rphenoannoy](https://github.com/stuchly/Rphenoannoy)
+offers a more performant implementation of the algorithm.
+
+In the following code chunk, we select the asinh-transformed mean pixel
+intensities per cell and channel and subset the channels to the ones containing
+biological variation. This matrix is transposed to store cells in rows. Within
+the `Rphenograph` function, we select the 45 nearest neighbors for graph
+building and louvain community detection (default). The function returns a list
+of length 2, the first entry being the graph and the second entry containing the
+community object. Calling `membership` on the community object will return
+cluster IDs for each cell. These cluster IDs are then stored within the
+`colData` of the `SpatialExperiment` object. Cluster IDs are mapped on top of
+the UMAP embedding and single-cell marker expression within each cluster are
+visualized in form of a heatmap.
+
+It is recommended to test different inputs to `k` as shown in the next section.
+Selecting larger values for `k` results in larger clusters.
+
+```{r rphenograph-1, message=FALSE}
+library(Rphenograph)
+library(igraph)
+library(dittoSeq)
+library(viridis)
+
+mat <- t(assay(spe, "exprs")[rowData(spe)$use_channel,])
+
+out <- Rphenograph(mat, k = 45)
+
+clusters <- factor(membership(out[[2]]))
+
+spe$pg_clusters <- clusters
+
+dittoDimPlot(spe, var = "pg_clusters", 
+             reduction.use = "UMAP", size = 0.2,
+             do.label = TRUE) +
+    ggtitle("Phenograph clusters expression on UMAP")
+```
+
+```{r, fig.height=8}
+dittoHeatmap(spe[,cur_cells], 
+             genes = rownames(spe)[rowData(spe)$use_channel],
+             assay = "exprs", scale = "none",
+             heatmap.colors = viridis(100), 
+             annot.by = c("pg_clusters", "patient_id"),
+             annot.colors = c(dittoColors(1)[1:length(unique(spe$pg_clusters))],
+                              metadata(spe)$color_vectors$patient_id))
+```
+
+We can observe that some of the clusters only contain cells of a single patient.
+This  can often be observed in the tumor compartment. In the next step, we
+use the integrated cells (see Section \@ref(batch-effects)) in low dimensional
+embedding for clustering. Here, the low dimensional embedding can
+be directly accessed from the `reducedDim` slot.
+
+```{r rphenograph-2, message=FALSE}
+mat <- reducedDim(spe, "fastMNN")
+
+out <- Rphenograph(mat, k = 45)
+
+clusters <- factor(membership(out[[2]]))
+
+spe$pg_clusters_corrected <- clusters
+
+dittoDimPlot(spe, var = "pg_clusters_corrected", 
+             reduction.use = "UMAP_mnnCorrected", size = 0.2,
+             do.label = TRUE) +
+    ggtitle("Phenograph clusters expression on UMAP, integrated cells")
+```
+
+```{r, fig.height=8}
+dittoHeatmap(spe[,cur_cells], 
+             genes = rownames(spe)[rowData(spe)$use_channel],
+             assay = "exprs", scale = "none",
+             heatmap.colors = viridis(100), 
+             annot.by = c("pg_clusters_corrected", "pg_clusters","patient_id"),
+             annot.colors = c(dittoColors(1)[1:length(unique(spe$pg_clusters_corrected))],
+                              dittoColors(1)[1:length(unique(spe$pg_clusters))],
+                              metadata(spe)$color_vectors$patient_id))
+```
+
+Clustering using the integrated embedding leads to clusters that contain cells
+of different patients. Cluster annotation can now be performed by manually
+labeling cells based on their marker expression.
+
+## Classification approach {#classification}
+
+In this section, we will highlight a cell type classification approach based
+on ground truth labeling and random forest classification. The rational for
+this supervised cell phenotyping approach is to use the information contained
+in the pre-defined markers to detect cells of interest. This approach was
+used by Hoch _et al._ (2022) to classify cell types in a metastatic melanoma IMC
+dataset.
+
+The antibody panel used in the example data set mainly focuses on immune cell
+types and little on tumor cell phenotypes. Therefore we will label the following
+cell types:
+
+* Tumor (E-cadherin positive)
+* Stroma (SMA, PDGFRb positive)
+* Plasma cells (CD38 positive)
+* Neutrophil (MPO, CD15 positive)
+* Myeloid cells (HLADR positive)
+* B cells (CD20 positive)
+* B next to T cells (CD20, CD3 positive)
+* Regulatory T cells (FOXP3 positive)
+* CD8+ T cells (CD3, CD8 positive)
+* CD4+ T cells (CD3, CD4 positive)
+
+The "B next to T cell" phenotype (`BnTcell`) is commonly observed in immune
+infiltrated regions measured by IMC. We include this phenotype to account for B
+cell/T cell interactions where precise classification into B cells or T cells is
+not possible.
+
+As related approaches, [Astir](https://github.com/camlab-bioml/astir) and
+[Garnett](https://cole-trapnell-lab.github.io/garnett/) use pre-defined panel
+information to classify cell phenotypes based on their marker expression.
+
+### Manual labeling of cells
+
+The [cytomapper](https://www.bioconductor.org/packages/release/bioc/html/cytomapper.html)
+package provides the `cytomapperShiny` function that allows gating of cells
+based on their marker expression and visualization of selected cells directly
+on the images. 
+
+```{r cytomapperShiny, message=FALSE}
+library(cytomapper)
+if (interactive()) {
+    cytomapperShiny(object = spe, mask = masks, image = images_comp, 
+                    cell_id = "ObjectNumber", img_id = "sample_id")
+}
+```
+
+The labeled cells for this data set can be accessed at
+[zenodo.org/record/7432486](https://zenodo.org/record/7432486) and were
+downloaded previously. Per image, the `cytomapperShiny`
+function allows the export of gated cells in form of a `SingleCellExperiment` or
+`SpatialExperiment` object. The cell label is stored in
+`colData(object)$cytomapper_CellLabel` and the gates are stored in
+`metadata(object)`. In the next section, we will read in and consolidate the
+labeled data.
+
+### Define color vectors
+
+For consistent visualization of cell types, we will now pre-define their colors:
+
+```{r cell-type-colors}
+celltype <- setNames(c("#3F1B03", "#F4AD31", "#894F36", "#1C750C", "#EF8ECC", 
+                       "#6471E2", "#4DB23B", "grey", "#F4800C", "#BF0A3D", "#066970"),
+                     c("Tumor", "Stroma", "Myeloid", "CD8", "Plasma_cell", 
+                       "Treg", "CD4", "undefined", "BnTcell", "Bcell", "Neutrophil"))
+
+metadata(spe)$color_vectors$celltype <- celltype
+```
+
+### Read in and consolidate labeled data
+
+Here, we will read in the individual `SpatialExperiment` objects containing the
+labeled cells and concatenate them. In the process of concatenating the 
+`SpatialExperiment` objects along their columns, the `sample_id` entry is 
+appended by `.1, .2, .3, ...` due to replicated entries. 
+
+```{r, read-in-labeled-data, message=FALSE}
+library(SingleCellExperiment)
+label_files <- list.files("data/gated_cells", 
+                          full.names = TRUE, pattern = ".rds$")
+
+# Read in SPE objects
+spes <- lapply(label_files, readRDS)
+
+# Merge SPE objects
+concat_spe <- do.call("cbind", spes)
+```
+
+In the following code chunk we will identify cells that were labeled multiple
+times. This occurs when different cell phenotypes are gated per image and can
+affect immune cells that are located inside the tumor compartment.
+
+We will first identify those cells that were uniquely labeled. In the next step,
+we will identify those cells that were labeled twice AND were labeled as Tumor
+cells. These cells will be assigned their immune cell label. Finally, we will
+save the unique labels within the original `SpatialExperiment` object.
+
+```{r, consolidate-labels}
+cur_tab <- unclass(table(colnames(concat_spe), 
+                         concat_spe$cytomapper_CellLabel))
+cur_labels <- rep("doublets", nrow(cur_tab))
+names(cur_labels) <- rownames(cur_tab)
+
+# Single assignments
+single_index <- rowSums(cur_tab) == 1
+cur_labels[single_index] <- colnames(cur_tab)[apply(cur_tab[single_index,], 1, 
+                                                    which.max)]
+
+# Double assignment within the tumor
+double_index <- rowSums(cur_tab) == 2 & cur_tab[,"Tumor"] == 1
+no_tumor <- cur_tab[,colnames(cur_tab) != "Tumor"]
+cur_labels[double_index] <- colnames(no_tumor)[apply(no_tumor[double_index,], 1, 
+                                                    which.max)]
+
+# Remove doublets
+cur_labels <- cur_labels[cur_labels != "doublets"]
+table(cur_labels)
+
+# Transfer labels to SPE object
+spe_labels <- rep("unlabeled", ncol(spe))
+names(spe_labels) <- colnames(spe)
+spe_labels[names(cur_labels)] <- cur_labels
+spe$cell_labels <- spe_labels
+
+# Number of cells labeled per patient
+table(spe$cell_labels, spe$patient_id)
+```
+
+Based on these labels, we can now train a random forest classifier to classify
+all remaining, unlabeled cells.
+
+### Train classifier
+
+In this section, we will use the
+[caret](https://topepo.github.io/caret/index.html) framework for machine
+learning in R. This package provides an interface to train a number of
+regression and classification models in a coherent fashion. We use a random
+forest classifier due to low number of parameters, high speed and an observed
+high performance for cell type classification [@Hoch2022].
+
+In the following section, we will first split the `SpatialExperiment` object
+into labeled and unlabeled cells. Based on the labeled cells, we split
+the data into a train (75% of the data) and test (25% of the data) dataset. 
+We currently do not provide an independently labeled validation dataset.
+
+The `caret` package provides the `trainControl` function, which specifies model
+training parameters and the `train` function, which performs the actual model
+training. While training the model, we also want to estimate the best model
+parameters. In the case of the chosen random forest model (`method = "rf"`), we
+only need to estimate a single parameters (`mtry`) which corresponds to the
+number of variables randomly sampled as candidates at each split. To estimate
+the best parameter, we will perform a 5-fold cross validation (set within
+`trainControl`) over a tune length of 5 entries to `mtry`.
+
+```{r train-classifier, message=FALSE}
+library(caret)
+
+# Split between labeled and unlabeled cells
+lab_spe <- spe[,spe$cell_labels != "unlabeled"]
+unlab_spe <- spe[,spe$cell_labels == "unlabeled"]
+
+# Randomly split into train and test data
+set.seed(221029)
+trainIndex <- createDataPartition(factor(lab_spe$cell_labels), p = 0.75)
+train_spe <- lab_spe[,trainIndex$Resample1]
+test_spe <- lab_spe[,-trainIndex$Resample1]
+
+# Specify train parameters for 5-fold cross validation
+fitControl <- trainControl(method = "cv",
+                           number = 5)
+
+# Select the data for training
+cur_mat <- t(assay(train_spe, "exprs")[rowData(train_spe)$use_channel,])
+
+# Train a random forest model for predicting cell labels
+# This call also performs parameter tuning
+rffit <- train(x = cur_mat, 
+               y = factor(train_spe$cell_labels),
+               method = "rf", ntree = 1000,
+               tuneLength = 5,
+               trControl = fitControl)
+
+rffit
+```
+
+### Classifier performance
+
+We next observe the accuracy of the classifer when predicting cell 
+phenotypes across the cross-validation as well as the test dataset.
+
+First, we can visualize the classification accuracy during parameter
+tuning:
+
+```{r accuracy-tuning}
+ggplot(rffit) + 
+  geom_errorbar(data = rffit$results,
+                aes(ymin = Accuracy - AccuracySD,
+                    ymax = Accuracy + AccuracySD),
+                width = 0.4) +
+    theme_classic(base_size = 15)
+```
+
+The best value for `mtry` is 28 and is used when predicting new data.
+
+It is often recommended to visualize the variable importance of the
+classifier. The following plot specifies which variables (markers) are 
+most important for classifying the data.
+
+```{r variable-importance, fig.height = 10}
+plot(varImp(rffit))
+```
+
+As expected, the markers that were used for gating (Ecad, CD3, CD20, HLADR,
+CD8a, CD38, FOXP3) were important for classification.
+
+To assess the accuracy, sensitivity, specificity, among other quality measures of
+the classifier, we will now predict cell phenotypes in the test data.
+
+```{r model-testing, message=FALSE}
+# Select test data
+cur_mat <- t(assay(test_spe, "exprs")[rowData(test_spe)$use_channel,])
+
+# Predict cell phenotypes in test data
+cur_pred <- predict(rffit, 
+                    newdata = cur_mat)
+```
+
+While the overall classification accuracy can appear high, we also want
+to check if each cell phenotype class is correctly predicted.
+For this, we will calculate the confusion matrix between predicted and actual 
+cell labels. This measure highlights individual cell phenotype classes that 
+were not correctly predicted by the classifier. When setting `mode = "everything"`,
+the `confusionMatrix` function returns all available prediction measures including
+sensitivity, specificity, precision, recall and the F1 score per cell 
+phenotype class.
+
+```{r confusion-matrix}
+cm <- confusionMatrix(data = cur_pred, 
+                      reference = factor(test_spe$cell_labels), 
+                      mode = "everything")
+
+cm
+```
+
+To easily visualize these results, we can now plot the true positive rate (sensitivity)
+versus the false positive rate (1 - specificity):
+
+```{r specificity-sensitivity, message=FALSE}
+library(tidyverse)
+
+data.frame(cm$byClass) %>%
+  mutate(class = sub("Class: ", "", rownames(cm$byClass))) %>%
+  ggplot() + 
+  geom_point(aes(1 - Specificity, Sensitivity, 
+                 size = Detection.Rate,
+                 fill = class),
+             shape = 21) + 
+  scale_fill_manual(values = metadata(spe)$color_vectors$celltype) +
+  theme_classic(base_size = 15) + 
+  ylab("Sensitivity (TPR)") +
+  xlab("1 - Specificity (FPR)")
+```
+
+We observe high sensitivity and specificity for most cell types. Plasma cells
+show the lowest true positive rate with 88% being sufficiently high. The size of
+the circle specifies the number of cells per class.
+
+Finally, to observe which cell phenotypes were wrongly classified, we can visualize
+the distribution of classification probabilities per cell phenotype class:
+
+```{r prediciton-probability, fig.height=15}
+cur_pred <- predict(rffit, 
+                    newdata = cur_mat, 
+                    type = "prob")
+cur_pred$truth <- factor(test_spe$cell_labels)
+
+cur_pred %>%
+  pivot_longer(cols = Bcell:Tumor) %>%
+  ggplot() +
+  geom_boxplot(aes(x = name, y = value, fill = name), outlier.size = 0.5) +
+  facet_wrap(. ~ truth, ncol = 1) + 
+  scale_fill_manual(values = metadata(spe)$color_vectors$celltype)  +
+  theme(panel.background = element_blank(), 
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+The boxplots indicate the classification probabilities per class. The classifier
+is well trained if classification probabilities are only high for the one 
+specific class.
+
+### Classification of new data
+
+In the final section, we will now use the tuned and tested random forest 
+classifier to predict the cell phenotypes of the unlabeled data.
+
+First, we predict the cell phenotypes and extract their classification
+probabilities.
+
+```{r, unlabeled-prediction}
+# Select unlabeled data
+cur_mat <- t(assay(unlab_spe, "exprs")[rowData(unlab_spe)$use_channel,])
+
+# Predict cell phenotypes
+cell_class <- as.character(predict.train(rffit, 
+                                         newdata = cur_mat, 
+                                         type = "raw"))
+names(cell_class) <- rownames(cur_mat)
+
+table(cell_class)
+
+# Extract classification probabilities
+cell_prob <- predict.train(rffit, 
+                           newdata = cur_mat, 
+                           type = "prob")
+```
+
+Each cell is assigned to the class with highest probability. There are however
+cases, where the highest probability is low meaning the cell can not be uniquely
+assigned to a class. We next want to identify these cells and label them as 
+"undefined". Here, we select a maximum classification probability threshold 
+of 40% but this threshold needs to be adjusted for other datasets. The adjusted
+cell labels are then stored in the `SpatialExperiment` object.
+
+```{r, undefined-cells}
+library(ggridges)
+
+# Distribution of maximum probabilities
+tibble(max_prob = rowMax(as.matrix(cell_prob)),
+       type = cell_class) %>%
+    ggplot() +
+        geom_density_ridges(aes(x = max_prob, y = cell_class, fill = cell_class)) +
+        scale_fill_manual(values = metadata(spe)$color_vectors$celltype) +
+        theme_classic(base_size = 15) +
+        xlab("Maximum probability") +
+        ylab("Cell type") + 
+        xlim(c(0,1.2))
+
+# Label undefined cells
+cell_class[rowMax(as.matrix(cell_prob)) < 0.4] <- "undefined"
+
+# Store labels in SpatialExperiment onject
+cell_labels <- spe$cell_labels
+cell_labels[colnames(unlab_spe)] <- cell_class
+spe$celltype <- cell_labels 
+
+table(spe$celltype, spe$patient_id)
+```
+
+## Cell phenotype visualization
+
+After classifying cells based on their phenotype in the dataset we will need to
+perform quality control to ensure correct labelling.
+
+First, we will visualize the cell labels on the UMAP embedding:
+
+```{r cell type umap, fig.width=10, fig.height=5, message=FALSE}
+dittoDimPlot(spe, var = "celltype", 
+             reduction.use = "UMAP_mnnCorrected", size = 0.2,
+             do.label = TRUE) +
+  scale_color_manual(values = metadata(spe)$color_vectors$celltype) +
+  theme(legend.title = element_blank()) +
+  ggtitle("Cell types on UMAP, integrated cells")
+```
+
+We can also visualize each cells expression in form of a heatmap while
+labelling the columns by cell phenotype.
+
+```{r celltype heatmap, fig.height = 7,fig.width = 7, message=FALSE}
+#Heatmap visualization - DittoHeatmap
+dittoHeatmap(spe[,cur_cells], 
+             genes = rownames(spe)[rowData(spe)$use_channel],
+             assay = "exprs", order.by = c("celltype"),
+             cluster_cols = FALSE, scale = "none",
+             heatmap.colors = viridis(100), annot.by = c("celltype","indication","patient_id"),
+             annotation_colors = list(indication = metadata(spe)$color_vectors$indication,
+                                      patient_id = metadata(spe)$color_vectors$patient_id,
+                                      celltype = metadata(spe)$color_vectors$celltype))
+```
+
+We can now also visualize the differences in cell phenotypes between patients 
+in form of barplots.
+
+```{r barplot}
+# by patient_id - percentage
+dittoBarPlot(spe, var = "celltype", group.by = "patient_id") +
+    scale_fill_manual(values = metadata(spe)$color_vectors$celltype)
+```
+
+The `cytomapper` package further provides functionality to visualize the
+cell phenotypes on segmentation masks. For visualization purposes, we select
+again three images.
+
+```{r celltype}
+# Sample images
+set.seed(220517)
+cur_id <- sample(unique(spe$sample_id), 3)
+cur_images <- images_comp[names(images_comp) %in% cur_id]
+cur_masks <- masks[names(masks) %in% cur_id]
+
+plotCells(cur_masks,
+          object = spe, 
+          cell_id = "ObjectNumber", img_id = "sample_id",
+          colour_by = "celltype")
+```
+
+A recommended way of visualizing segmentation quality is to select a cell
+phenotype of interest and outline the cells on composite images. In the following
+example, we select CD8+ T cells and visualize them on composite images displaying
+the marker intensity of CD3 and CD8.
+
+```{r outlining-CD8}
+CD8 <- spe[,spe$celltype == "CD8"]
+
+plotPixels(image = cur_images,
+           mask = cur_masks,
+           object = CD8, 
+           cell_id = "ObjectNumber", img_id = "sample_id",
+           colour_by = c("CD3", "CD8a"),
+           outline_by = "celltype",
+                      bcg = list(CD3 = c(0, 5, 1),
+                      CD8a = c(0, 5, 1)),
+           colour = list(celltype = c("CD8" = "white")),
+           thick = TRUE)
+```
+
+For easier visualization the plot can also be written out:
+
+```{r write-out-plot}
+if (!dir.exists("data/CellValidation")) dir.create("data/CellValidation")
+
+plotPixels(image = cur_images,
+           mask = cur_masks,
+           object = CD8, 
+           cell_id = "ObjectNumber", img_id = "sample_id",
+           colour_by = c("CD3", "CD8a"),
+           outline_by = "celltype",
+                      bcg = list(CD3 = c(0, 5, 1),
+                      CD8a = c(0, 5, 1)),
+           colour = list(celltype = c("CD8" = "white")),
+           thick = TRUE,
+           save_plot = list(filename = "data/CellValidation/CD8.png"))
+```
+
+## Save objects
+
+Finally, the generated data objects can be saved for further downstream 
+processing and analysis.
+
+```{r save-objects-read-data}
+saveRDS(spe, "data/spe.rds")
+```
+
+## Session info
+
+```{r}
+sessionInfo()
+```
