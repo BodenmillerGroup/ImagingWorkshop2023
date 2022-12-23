@@ -12,13 +12,15 @@ knitr::opts_chunk$set(echo = TRUE)
 For session 2, we will download IMC example data to highlight the use of the
 `steinbock` framework for image processing.
 
-To highlight the basic steps of multiplexed image analysis, we provide example data that
-were acquired as part of the **I**ntegrated i**MMU**noprofiling of large adaptive
-**CAN**cer patient cohorts projects ([immucan.eu](https://immucan.eu/)). The
-raw data of 4 patients can be accessed online at 
-[zenodo.org/record/5949116](https://zenodo.org/record/5949116).
+The example data were acquired as part of the **I**ntegrated i**MMU**noprofiling
+of large adaptive **CAN**cer patient cohorts projects
+([immucan.eu](https://immucan.eu/)). The raw data of 4 patients can be accessed
+online at [zenodo.org/record/5949116](https://zenodo.org/record/5949116). Here,
+we will also download a panel file which matches the raw data as well as
+metadata regarding the samples.
 
 ```{r download-raw, message=FALSE, warning=FALSE}
+options(timeout=10000)
 if (!dir.exists("data/steinbock")) dir.create("data/steinbock")
 if (!dir.exists("data/steinbock/raw")) dir.create("data/steinbock/raw")
 
@@ -44,32 +46,37 @@ files for download:
 url <- "https://zenodo.org/record/7412972/files/intensities.zip"
 destfile <- "data/steinbock/intensities.zip"
 download.file(url, destfile)
-unzip(destfile, exdir="data", overwrite=TRUE)
+unzip(destfile, exdir="data/steinbock/", overwrite=TRUE)
 unlink(destfile)
+
 # download regionprops
 url <- "https://zenodo.org/record/7412972/files/regionprops.zip"
 destfile <- "data/steinbock/regionprops.zip"
 download.file(url, destfile)
-unzip(destfile, exdir="data", overwrite=TRUE)
+unzip(destfile, exdir="data/steinbock/", overwrite=TRUE)
 unlink(destfile)
+
 # download neighbors
 url <- "https://zenodo.org/record/7412972/files/neighbors.zip"
 destfile <- "data/steinbock/neighbors.zip"
 download.file(url, destfile)
-unzip(destfile, exdir="data", overwrite=TRUE)
+unzip(destfile, exdir="data/steinbock/", overwrite=TRUE)
 unlink(destfile)
+
 # download images
 url <- "https://zenodo.org/record/7412972/files/img.zip"
 destfile <- "data/img.zip"
 download.file(url, destfile)
-unzip(destfile, exdir="data", overwrite=TRUE)
+unzip(destfile, exdir="data/steinbock/", overwrite=TRUE)
 unlink(destfile)
+
 # download masks
 url <- "https://zenodo.org/record/7412972/files/masks_deepcell.zip"
 destfile <- "data/steinbock/masks_deepcell.zip"
 download.file(url, destfile)
-unzip(destfile, exdir="data", overwrite=TRUE)
+unzip(destfile, exdir="data/steinbock/", overwrite=TRUE)
 unlink(destfile)
+
 # download individual files
 download.file("https://zenodo.org/record/7412972/files/images.csv", 
               "data/steinbock/images.csv")
@@ -78,7 +85,8 @@ download.file("https://zenodo.org/record/7412972/files/images.csv",
 ### Files for spillover matrix estimation
 
 To highlight the estimation and correction of channel-spillover as described by
-[https://www.cell.com/cell-systems/fulltext/S2405-4712(18)30063-2](https://www.cell.com/cell-systems/fulltext/S2405-4712(18)30063-2), we can access an example spillover-acquisition from:
+[https://www.cell.com/cell-systems/fulltext/S2405-4712(18)30063-2](https://www.cell.com/cell-systems/fulltext/S2405-4712(18)30063-2), we can access an example spillover-acquisition from
+[zenodo.org/record/5949116](https://zenodo.org/record/5949116)
 
 ```{r download-spillover-data}
 download.file("https://zenodo.org/record/5949116/files/compensation.zip",
@@ -99,8 +107,6 @@ download.file("https://zenodo.org/record/7432486/files/gated_cells.zip",
               "data/gated_cells.zip")
 unzip("data/gated_cells.zip", exdir="data", overwrite=TRUE)
 unlink("data/gated_cells.zip")
+
+unlink("data/__MACOSX", recursive = TRUE)
 ```
-
-### Final Data objects
-
-TODO
