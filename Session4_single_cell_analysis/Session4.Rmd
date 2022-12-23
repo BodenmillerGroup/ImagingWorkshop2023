@@ -2,7 +2,10 @@
 title: "Session 4: single-cell analysis"
 author: "Nils Eling"
 date: "`r Sys.Date()`"
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
 ---
 
 ```{r setup, include=FALSE}
@@ -10,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 Session 4 of the Multiplexed Tissue Imaging Workshop focuses on single-cell
-analysis and pre-prcessing. The first section will demonstrate how to perform
+analysis and pre-processing. The first section will demonstrate how to perform
 spillover correction before highlighting a batch correction approach and
 cell phenotyping.
 
@@ -94,31 +97,6 @@ plotSpotHeatmap(sce, log = FALSE, threshold = 200)
 
 As we can see, all median pixel intensities are > 200 counts for each spot.
 We also observe acquired channels for which no spot was placed (Xe134, Ir191, Ir193). 
-
-### Optional pixel binning {#pixel_binning}
-
-In cases where median pixel intensities are low (< 200 counts), consecutive
-pixels can be summed to increase the robustness of the spillover estimation.
-The `imcRtools` package provides the `binAcrossPixels` function,
-which performs aggregation for each channel across `bin_size` consecutive pixels 
-per spotted metal.
-
-```{r binning, message=FALSE, fig.width=7, fig.height=7}
-# Define grouping
-bin_size = 10
-
-sce2 <- binAcrossPixels(sce, bin_size = bin_size)
-
-# Log10 median pixel counts per spot and channel
-plotSpotHeatmap(sce2)
-
-# Thresholded on 200 pixel counts
-plotSpotHeatmap(sce2, log = FALSE, threshold = 200)
-```
-
-Here, we can see an increase in the median pixel intensities and accumulation of
-off-diagonal signal. Due to already high original pixel intensities, we will
-refrain from aggregating across consecutive pixels for this demonstration.
 
 ### Filtering incorrectly assigned pixels
 
@@ -217,7 +195,7 @@ write.csv(sm, "data/sm.csv")
 
 The `CATALYST` package can be used to perform spillover compensation on the
 **single-cell mean intensities**. Here, the `SpatialExperiment` object generated
-in Section \@ref(read-data) is read in. The `CATALYST` package requires an entry
+in in the previous Session is read in. The `CATALYST` package requires an entry
 to `rowData(spe)$channel_name` for the `compCytof` function to run. This entry
 should contain the metal isotopes in the form (mt)(mass)Di (e.g., `Sm152Di` for
 Samarium isotope with the atomic mass 152). 
@@ -225,7 +203,7 @@ Samarium isotope with the atomic mass 152).
 The `compCytof` function performs channel spillover compensation on the mean
 pixel intensities per channel and cell. Here, we will not overwrite the assays
 in the `SpatialExperiment` object to later highlight the effect of compensation.
-As shown in Section \@ref(read-data), also the compensated counts are
+As shown in the previous session, also the compensated counts are
 asinh-transformed using a cofactor of 1.
 
 ```{r single-cell-compensation}
@@ -271,11 +249,10 @@ assay(spe, "compcounts") <- assay(spe, "compexprs") <- NULL
 The [cytomapper](https://github.com/BodenmillerGroup/cytomapper) package allows channel
 spillover compensation directly on **multi-channel images**. 
 The `compImage` function takes a `CytoImageList` object and the estimated
-spillover matrix as input. More info on how to work with `CytoImageList`
-objects can be seen in Section \@ref(image-visualization).
+spillover matrix as input. 
 
 At this point, we can read in the `CytoImageList` object containing multi-channel
-images as generated in Section \@ref(read-data).
+images as generated in the previous session.
 The `channelNames` need to be set according to their metal isotope in the form
 (mt)(mass)Di and therefore match `colnames(sm)`.
 
@@ -382,8 +359,7 @@ Here, we apply the `fastMNN` function to integrate cells between
 patients. By setting `auto.merge = TRUE` the function estimates the best 
 batch merging order by maximizing the number of MNN pairs at each merging step. 
 This is more time consuming than merging sequentially based on how batches appear in the 
-dataset (default). We again select the markers defined in Section \@ref(cell-processing)
-for sample correction.
+dataset (default). 
 
 The function returns a `SingleCellExperiment` object which contains corrected
 low-dimensional coordinates for each cell in the `reducedDim(out, "corrected")`
@@ -505,7 +481,7 @@ Unlike single-cell RNA sequencing or CyTOF data, single-cell data derived from
 highly-multiplexed imaging data often suffers from "lateral spillover" between
 neighboring cells. This spillover caused by imperfect segmentation often hinders
 accurate clustering to define specific cell phenotypes in multiplexed imaging
-data. In Section \@ref(classification) we will train and apply a random
+data. At the end of this session we will train and apply a random
 forest classifier to classify cell phenotypes in the dataset as alternative
 approach for clustering-based cell phenotyping. This approach has been previously used to
 identify major cell phenotypes in metastatic melanoma and avoids clustering of
@@ -524,22 +500,21 @@ cur_cells <- sample(seq_len(ncol(spe)), 2000)
 In the first section to identify cellular phenotypes in the dataset, we will
 present a popular clustering approache that groups cells based on their similarity in
 marker expression. A number of approaches have been developed to cluster data
-derived from single-cell RNA sequencing technologies [@Yu2022] or CyTOF
-[@Weber2016]. For demonstration purposes, we will only highlight the `Phenograph`
+derived from single-cell RNA sequencing technologies or CyTOF. For demonstration purposes, we will only highlight the `Phenograph`
 clustering approach. For a full overview on different clustering approaches,
-please refer to the [Phenotyping](TODO) section of the online book.
+please refer to the [Phenotyping](https://bodenmillergroup.github.io/IMCDataAnalysis/cell-phenotyping.html#cell-phenotyping) section of the online book.
 
 ### Rphenograph
 
 The PhenoGraph clustering approach was first described to group cells of a CyTOF
-dataset [@Levine2015]. The algorithm first constructs a graph by detecting the
+dataset. The algorithm first constructs a graph by detecting the
 `k` nearest neighbours based on euclidean distance in expression space. In the
 next step, edges between nodes (cells) are weighted by their overlap in nearest
 neighbor sets. To quantify the overlap in shared nearest neighbor sets, the
 jaccard index is used. The Louvain modularity optimization approach is used to
 detect connected communities and partition the graph into clusters of cells.
 This clustering strategy was used by Jackson, Fischer _et al._  and Schulz _et
-al._ to cluster IMC data [@Jackson2020; @Schulz2018].
+al._ to cluster IMC data.
 
 There are several different PhenoGraph implementations available in R. Here, we
 use the one available at
@@ -595,7 +570,7 @@ dittoHeatmap(spe[,cur_cells],
 
 We can observe that some of the clusters only contain cells of a single patient.
 This  can often be observed in the tumor compartment. In the next step, we
-use the integrated cells (see Section \@ref(batch-effects)) in low dimensional
+use the integrated cells in low dimensional
 embedding for clustering. Here, the low dimensional embedding can
 be directly accessed from the `reducedDim` slot.
 
@@ -768,7 +743,7 @@ In this section, we will use the
 learning in R. This package provides an interface to train a number of
 regression and classification models in a coherent fashion. We use a random
 forest classifier due to low number of parameters, high speed and an observed
-high performance for cell type classification [@Hoch2022].
+high performance for cell type classification.
 
 In the following section, we will first split the `SpatialExperiment` object
 into labeled and unlabeled cells. Based on the labeled cells, we split

@@ -2,7 +2,10 @@
 title: 'Session 5: Spatial analysis'
 author: "Nils Eling"
 date: "`r Sys.Date()`"
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
 ---
 
 ```{r setup, include=FALSE}
@@ -40,7 +43,7 @@ between cell types.
 
 The [steinbock](https://bodenmillergroup.github.io/steinbock/latest/cli/measurement/) 
 framework allows the construction of these spatial graphs. During image 
-processing (see Section \@ref(image-processing)), we have constructed
+processing, we have constructed
 a spatial graph by expanding the individual cell masks by 4 pixels. 
 
 The `imcRtools` package further allows the *ad hoc* consctruction of spatial
@@ -81,14 +84,6 @@ and `colPair(spe, "delaunay_interaction_graph")` stores the graph constructed by
 Delaunay triangulation.
 
 ## Spatial visualization {#spatial-viz}
-
-Section \@ref(image-visualization) highlights the use of the
-[cytomapper](https://www.bioconductor.org/packages/release/bioc/html/cytomapper.html)
-package to visualize multichannel images and segmentation masks. Here, we
-introduce the
-[plotSpatial](https://bodenmillergroup.github.io/imcRtools/reference/plotSpatial.html)
-function of the [imcRtools](https://www.bioconductor.org/packages/release/bioc/html/imcRtools.html) package to visualize the cells' centroids and
-cell-cell interactions as spatial graphs.
 
 In the following example, we select one image for visualization purposes. 
 Here, each dot (node) represents a cell and edges are drawn between cells
@@ -181,14 +176,16 @@ For a full documentation on the `plotSpatial` function, please refer to
 
 ## Spatial community analysis
 
-The detection of spatial communities was proposed by [@Jackson2020]. Here,
+The detection of spatial communities was proposed by [Jackson, Fischer et al.](https://www.nature.com/articles/s41586-019-1876-x). Here,
 cells are clustered solely based on their interactions as defined by the
 spatial object graph. In the following example, we perform spatial community 
 detection separately for tumor and stromal cells.
 
-The general procedure is as follows:    
+The general procedure is as follows:      
+
 1. create a `colData(spe)` entry that specifies if a cell is part of the tumor
-or stroma compartment. 
+or stroma compartment.   
+
 2. use the `detectCommunity` function of the `imcRtools`
 package to cluster cells within the tumor or stoma compartment solely based on
 their spatial interaction graph as constructed by the `steinbock` package.  
@@ -258,11 +255,11 @@ communities consists of mainly neutrophils.
 
 The following section highlights the use of the `imcRtools` package to
 detect cellular neighborhoods. This approach has been proposed by
-[@Goltsev2018] and [@Schurch2020] to group cells based on information
+[Goltsev et al.](https://www.cell.com/cell/fulltext/S0092-8674(18)30904-8?_returnURL=https%3A%2F%2Flinkinghub.elsevier.com%2Fretrieve%2Fpii%2FS0092867418309048%3Fshowall%3Dtrue) and [Schurch et al.](https://www.sciencedirect.com/science/article/pii/S0092867420308709) to group cells based on information
 contained in their direct neighborhood.
 
-[@Goltsev2018] perfomed Delaunay triangulation-based graph construction,
-neighborhood aggregation and then clustered cells. [@Schurch2020] on the
+Goltsev et al. perfomed Delaunay triangulation-based graph construction,
+neighborhood aggregation and then clustered cells. Schurch et al. on the
 other hand constructed a 10-nearest neighbor graph before aggregating
 information across neighboring cells.
 
@@ -282,11 +279,8 @@ types among the 20-nearest neighbors and use kmeans clustering to group
 cells into 6 cellular neighborhoods.
 
 **Of note:** constructing a 20-nearest neighbor graph and clustering
-using kmeans with `k=6` is only an example. Similar to the analysis done
-in Section \@ref(snn-graph), it is recommended to perform a parameter
-sweep across different graph construction algorithms and different
-parmaters `k` for kmeans clustering. Finding the best CN detection
-settings is also subject to the question at hand. Constructing graphs
+using kmeans with `k=6` is only an example. Finding the best CN detection
+settings is subject to the question at hand. Constructing graphs
 with more neighbors usually results in larger CNs.
 
 ```{r cn-analysis, fig.height=12, fig.width=12}
@@ -378,7 +372,7 @@ as well as lateral spillover due to imperfect segmentation.
 
 An alternative to the `aggregateNeighbors` function is provided by the
 [lisaClust](https://bioconductor.org/packages/release/bioc/html/lisaClust.html)
-Bioconductor package [@Patrick2021]. In contrast to `imcRtools`, the
+Bioconductor package. In contrast to `imcRtools`, the
 `lisaClust` package computes local indicators of spatial associations
 (LISA) functions and clusters cells based on those. More precise, the
 package summarizes L-functions from a Poisson point process model to
@@ -457,7 +451,7 @@ Downstream of CN assignments, we will analyze the spatial context (SC)
 of each cell using three functions from `imcRtools`.
 
 While CNs can represent sites of unique local processes, the term SC was
-coined by Bhate and colleagues [@Bhate2022] and describes tissue regions
+coined by Bhate and colleagues [Bhate et al.](https://www.sciencedirect.com/science/article/abs/pii/S240547122100380X) and describes tissue regions
 in which distinct CNs may be interacting. Hence, SCs may be interesting
 regions of specialized biological events.
 
@@ -481,9 +475,6 @@ each cell is assigned as the minimal combination of SCs that additively
 surpass a user-defined threshold. The default threshold of 0.9 aims to
 represent the dominant CNs, hence the most prevalent signals, in a given
 window.
-
-For more details and biological validation, please refer to
-[@Bhate2022].
 
 ```{r detectSpatialContext, fig.height=12, fig.width=15, message=FALSE}
 library(circlize)
@@ -590,7 +581,7 @@ plotSpatial(spe,
 ```
 
 Lastly, we can use the `plotSpatialContext` function to generate *SC
-graphs*, analogous to *CN combination maps* in [@Bhate2022]. Returned
+graphs*, analogous to *CN combination maps* in Bhate et al.. Returned
 objects are `ggplots`, which can be easily modified further. We will
 create a SC graph for the filtered SCs here.
 
@@ -629,7 +620,7 @@ unsupervised fashion. However, the `imcRtools` package also provides methods for
 detecting spatial compartments in a supervised fashion. The
 [patchDetection](https://bodenmillergroup.github.io/imcRtools/reference/patchDetection.html)
 function allows the detection of connected sets of similar cells as proposed by
-[@Hoch2022]. In the following example, we will use the `patchDetection` function
+[Hoch et al.](https://www.science.org/doi/10.1126/sciimmunol.abk1692). In the following example, we will use the `patchDetection` function
 to detect function to detect tumor patches in three steps:
 
 1. Find connected sets of tumor cells (using the `steinbock` graph).  
@@ -725,7 +716,7 @@ between all cell types of the dataset. For this, the `imcRtools` package
 provides the 
 [testInteractions](https://bodenmillergroup.github.io/imcRtools/reference/testInteractions.html) 
 function which implements the interaction testing strategy proposed by
-[@Shapiro2017]. 
+[Schapiro et al.](https://www.nature.com/articles/nmeth.4391). 
 
 Per grouping level (e.g., image), the `testInteractions` function computes the 
 averaged cell type/cell type interaction count and computes this count against
@@ -777,7 +768,7 @@ regulatory T cells interact with CD4+ T cells and CD8+ T cells. Most cell types
 show self interactions indicating spatial clustering. 
 
 The `imcRtools` package further implements an interaction testing strategy
-proposed by [@Schulz2018] where the hypothesis is tested if at least n cells of
+proposed by [Schulz et al.](https://www.cell.com/fulltext/S2405-4712(17)30543-4) where the hypothesis is tested if at least n cells of
 a certain type are located around a target cell type (`from_cell`). This type of
 testing can be performed by selecting `method = "patch"` and specifying the
 number of patch cells via the `patch_size` parameter.
