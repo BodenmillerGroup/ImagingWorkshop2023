@@ -1,5 +1,7 @@
 # Software setup
 
+**Of Note:** Please join the troubleshooting session on the beginning of the first day if you experience issues installing the software.
+
 ## Session 1
 
 `napari` instructions

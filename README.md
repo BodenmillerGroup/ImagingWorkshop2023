@@ -29,6 +29,35 @@ The `data_download.R` script in the [data](data) folder allows you to download a
 
 Session 3-5 will be conducted in R. The R markdown scripts can be found in the individual folder. Please always ensure that you open the `ImagingWorkshop.Rproj` file before starting the session.
 
+## Presentations and schedule
+
+| Time (CET)  | Topic                                                               |
+| ----------- | ------------------------------------------------------------------- |
+| 11.01.2023  |                                                                     |  
+| ----------- | ------------------------------------------------------------------- |
+| 9.00h | Troubleshooting session |
+| 10.00h | Welcome and coffee |
+| 10.15h      | [Introduction](https://docs.google.com/presentation/d/1Jh4HZgL5eJyAF5Tx8C0KY7QS9pHkLyhzQ-g6uhtLMfQ/edit?usp=sharing) |
+| 10.30h      | [Interactive visualization]()                           |
+| 11.00h      | Hands-on training: interactive visualization                           |
+| 11.30h      | Lunch                        |
+| 12.30h      | [Image processing]()  
+| 13.00h      | Hands-on training: image processing         |
+| 14.30h      | Coffee break   |
+| 15.00h      | [Reading data into R and visualization]() |
+| 15.30h      | Hands-on training: reading data into R and visualization    |
+| ----------- | ------------------------------------------------------------------- |
+| 12.01.2023  |                                                                     | 
+| ----------- | ------------------------------------------------------------------- |
+| 09.00h      | [Single-cell analysis]()                                                             |
+| 09.30h      | Coffee break          |
+| 10.00h      | Hands-on training: single-cell analysis                                                       |
+| 11.30h      | [Spatial data analysis]()                         |
+| 12.00h      | Lunch                                                    |
+| 13.00h      | Hands-on training: spatial analysis                                                     |
+| 14.30h      | Coffee break                                                     |
+| 15.00h      | "Bring your own data"                                                     |
+
 ## Further resources
 
 * [IMCDataAnalysis](https://bodenmillergroup.github.io/IMCDataAnalysis/) for a comprehensive overview on multiplexed image analysis.
