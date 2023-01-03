@@ -31,28 +31,30 @@ Session 3-5 will be conducted in R. The R markdown scripts can be found in the i
 
 ## Presentations and schedule
 
+**11.01.2023**
+
 | Time (CET)  | Topic                                                               |
-| ----------- | ------------------------------------------------------------------- |
-| 11.01.2023  |                                                                     |  
 | ----------- | ------------------------------------------------------------------- |
 | 9.00h | Troubleshooting session |
 | 10.00h | Welcome and coffee |
 | 10.15h      | [Introduction](https://docs.google.com/presentation/d/1Jh4HZgL5eJyAF5Tx8C0KY7QS9pHkLyhzQ-g6uhtLMfQ/edit?usp=sharing) |
-| 10.30h      | [Interactive visualization]()                           |
+| 10.30h      | [Interactive visualization](https://docs.google.com/presentation/d/1IUnl2lz3iU_D_0grOAbYyBeVrPQDU1dI-RHlX0dt4ko/edit?usp=sharing)                           |
 | 11.00h      | Hands-on training: interactive visualization                           |
 | 11.30h      | Lunch                        |
-| 12.30h      | [Image processing]()  
+| 12.30h      | [Image processing](https://docs.google.com/presentation/d/1465DGNcyM7nz7ffH-EQ1SVO0oSQm0kZcrkKjeauY-9M/edit?usp=sharing)  
 | 13.00h      | Hands-on training: image processing         |
 | 14.30h      | Coffee break   |
-| 15.00h      | [Reading data into R and visualization]() |
+| 15.00h      | [Reading data into R and visualization](https://docs.google.com/presentation/d/1pOqtJfOQym8Hp6DbMGkZTGivP00zjiIXQ6Dw5mRQpuY/edit?usp=sharing) |
 | 15.30h      | Hands-on training: reading data into R and visualization    |
+
+**12.01.2023**
+
+| Time (CET)  | Topic                                                               | 
 | ----------- | ------------------------------------------------------------------- |
-| 12.01.2023  |                                                                     | 
-| ----------- | ------------------------------------------------------------------- |
-| 09.00h      | [Single-cell analysis]()                                                             |
+| 09.00h      | [Single-cell analysis](https://docs.google.com/presentation/d/1UnOzH7UWbO6hLywwIs5MoaCE75HxDglU9JBIAY4_a60/edit?usp=sharing)                                                             |
 | 09.30h      | Coffee break          |
 | 10.00h      | Hands-on training: single-cell analysis                                                       |
-| 11.30h      | [Spatial data analysis]()                         |
+| 11.30h      | [Spatial data analysis](https://docs.google.com/presentation/d/1yqW_nMeW5ceQYBDCRTSssPRjaIhz7ghasD0yPd3w9pI/edit?usp=sharing)                         |
 | 12.00h      | Lunch                                                    |
 | 13.00h      | Hands-on training: spatial analysis                                                     |
 | 14.30h      | Coffee break                                                     |
