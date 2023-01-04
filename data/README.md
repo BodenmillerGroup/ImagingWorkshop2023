@@ -1,6 +1,9 @@
 # Data folder
 
-Please run the `data_download.Rmd` script to obtain all data needed for the tutorials.
+Open the `ImagingWorkshop2023.Rproj` file in `RStudio`.
+
+Please run the `data_download.Rmd` script to obtain all data needed for the tutorials. 
+When pressing the `knit` button in `RStudio` please make sure you select `Kint Directory` > `Project Directory` from the `knit` dropdown.
 
 The following folders and associated data will be created within the `data` folder:
 
@@ -9,7 +12,7 @@ The following folders and associated data will be created within the `data` fold
 The `steinbock` folder contains the raw IMC data in MCD format in the `steinbock/raw` folder. This folder together with the `steinbock/panel.csv` file forms the basis for Session 2 to process multichannel images. Following Session 2 the `steinbock` framework will create the following folders within the `steinbock` folder:
 
 * `img`: contains hot pixel filtered multi-channel images derived from the IMC raw data. One file per acquisition is generated.
-* `images`: contains metadata per acquisition.
+* `images.csv`: contains metadata per acquisition.
 * `masks_deepcell`: segmentation masks derived by deepcell segmentation.
 * `intensities`: Contains one CSV file per acquisition. Each file contains single-cell measures of the mean pixel intensity per cell and channel based on the files in `img` and `masks_deepcell`.
 * `regionprops`: Contains one CSV file per acquisition. Each file contains single-cell measures of the morphological features and location of cells based on `masks_deepcell`.

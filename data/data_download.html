@@ -11,7 +11,7 @@
 
 <meta name="author" content="Nils Eling" />
 
-<meta name="date" content="2022-12-23" />
+<meta name="date" content="2023-01-04" />
 
 <title>Data download</title>
 
@@ -352,7 +352,7 @@ display: none;
 
 <h1 class="title toc-ignore">Data download</h1>
 <h4 class="author">Nils Eling</h4>
-<h4 class="date">2022-12-23</h4>
+<h4 class="date">2023-01-04</h4>
 
 </div>
 
@@ -413,18 +413,23 @@ unlink(destfile)
 
 # download masks
 url &lt;- &quot;https://zenodo.org/record/7412972/files/masks_deepcell.zip&quot;
-destfile &lt;- &quot;data/steinbock/masks_deepcell.zip&quot;
+destfile &lt;- &quot;data/steinbock/masks.zip&quot;
 download.file(url, destfile)
 unzip(destfile, exdir=&quot;data/steinbock/&quot;, overwrite=TRUE)
-unlink(destfile)
+file.rename(&quot;data/steinbock/masks_deepcell&quot;, &quot;data/steinbock/masks&quot;)</code></pre>
+<pre><code>## Warning in file.rename(&quot;data/steinbock/masks_deepcell&quot;, &quot;data/steinbock/masks&quot;):
+## cannot rename file &#39;data/steinbock/masks_deepcell&#39; to &#39;data/steinbock/masks&#39;,
+## reason &#39;Directory not empty&#39;</code></pre>
+<pre><code>## [1] FALSE</code></pre>
+<pre class="r"><code>unlink(destfile)
 
 # download individual files
 download.file(&quot;https://zenodo.org/record/7412972/files/images.csv&quot;, 
               &quot;data/steinbock/images.csv&quot;)</code></pre>
 <div id="files-for-spillover-matrix-estimation" class="section level3">
 <h3>Files for spillover matrix estimation</h3>
-<p>To highlight the estimation and correction of channel-spillover as
-described by <a href="https://www.cell.com/cell-systems/fulltext/S2405-4712(18)30063-2">https://www.cell.com/cell-systems/fulltext/S2405-4712(18)30063-2</a>,
+<p>To highlight the estimation and correction of channel-spillover in
+Session 4 as described by <a href="https://www.cell.com/cell-systems/fulltext/S2405-4712(18)30063-2">https://www.cell.com/cell-systems/fulltext/S2405-4712(18)30063-2</a>,
 we can access an example spillover-acquisition from <a href="https://zenodo.org/record/5949116">zenodo.org/record/5949116</a></p>
 <pre class="r"><code>download.file(&quot;https://zenodo.org/record/5949116/files/compensation.zip&quot;,
               &quot;data/compensation.zip&quot;)
@@ -442,7 +447,7 @@ and will be downloaded here for later use:</p>
 unzip(&quot;data/gated_cells.zip&quot;, exdir=&quot;data&quot;, overwrite=TRUE)
 unlink(&quot;data/gated_cells.zip&quot;)
 
-unlink(&quot;data/__MACOSX&quot;)</code></pre>
+unlink(&quot;data/__MACOSX&quot;, recursive = TRUE)</code></pre>
 </div>
 
 

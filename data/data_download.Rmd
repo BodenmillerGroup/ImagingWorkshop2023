@@ -72,9 +72,10 @@ unlink(destfile)
 
 # download masks
 url <- "https://zenodo.org/record/7412972/files/masks_deepcell.zip"
-destfile <- "data/steinbock/masks_deepcell.zip"
+destfile <- "data/steinbock/masks.zip"
 download.file(url, destfile)
 unzip(destfile, exdir="data/steinbock/", overwrite=TRUE)
+file.rename("data/steinbock/masks_deepcell", "data/steinbock/masks")
 unlink(destfile)
 
 # download individual files
@@ -84,7 +85,7 @@ download.file("https://zenodo.org/record/7412972/files/images.csv",
 
 ### Files for spillover matrix estimation
 
-To highlight the estimation and correction of channel-spillover as described by
+To highlight the estimation and correction of channel-spillover in Session 4 as described by
 [https://www.cell.com/cell-systems/fulltext/S2405-4712(18)30063-2](https://www.cell.com/cell-systems/fulltext/S2405-4712(18)30063-2), we can access an example spillover-acquisition from
 [zenodo.org/record/5949116](https://zenodo.org/record/5949116)
 
