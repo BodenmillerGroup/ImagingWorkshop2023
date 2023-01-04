@@ -16,10 +16,11 @@ In session 1, we introduce several alternatives for viewing multi-channel images
    conda activate napari
    pip install jupyterlab "napari[all]" napari-imc tifffile pandas
    ```
+4. Execute ``conda deactivate`` followed by ``conda activate napari``
 
-4. Execute ``jupyter-lab`` and verify that jupyter-lab opens.
+5. Execute ``jupyter-lab`` and verify that jupyter-lab opens.
 
-5. Execute ``napari`` and verify that napari opens.
+6. Execute ``napari`` and verify that napari opens.
 
 If you experience troubles installing Anaconda or running jupyter-lab/napari, please join the Troubleshooting Session on the first day of the workshop.
 
