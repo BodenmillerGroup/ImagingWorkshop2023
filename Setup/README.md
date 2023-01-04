@@ -31,7 +31,8 @@ BiocManager::install(c("pheatmap", "viridis",
                        "randomForest", "ggridges", "cowplot", "gridGraphics",
                        "scales", "CATALYST", "scuttle", "scater", 
                        "dittoSeq", "tidyverse", "batchelor", 
-                       "bluster","scran", "lisaClust", "spicyR", "imcRtools", "cytomapper"))
+                       "bluster","scran", "lisaClust", "spicyR", "imcRtools", 
+                       "cytomapper", "imcdatasets"))
 
 # Github dependencies
 if (!requireNamespace("devtools", quietly = TRUE))

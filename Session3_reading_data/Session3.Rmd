@@ -838,6 +838,23 @@ saveRDS(images, "data/images.rds")
 saveRDS(masks, "data/masks.rds")
 ```
 
+## Obtaining public IMC datasets
+
+The [imcdatasets](https://bioconductor.org/packages/release/data/experiment/html/imcdatasets.html) 
+R/Bioconductor package provides publicly available IMC datasets in form 
+of `SingleCellExperiment` (single-cell data) and `CytoImageList` (images and
+segmentation masks) objects.
+
+```{r imcdatasets, eval=FALSE, message=FALSE}
+library(imcdatasets)
+
+listDatasets()
+
+sce <- Damond_2019_Pancreas(data_type = "sce")
+images <- Damond_2019_Pancreas(data_type = "images")
+masks <- Damond_2019_Pancreas(data_type = "masks")
+```
+
 ## Session info
 
 ```{r}
