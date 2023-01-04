@@ -10,7 +10,33 @@ Alternative tools for interactive image visualization include the ([MCDViewer](h
 
 ## Session 2
 
-`steinbock` instructions
+In session 2, we use the [steinbock](https://github.com/BodenmillerGroup/steinbock) toolkit for multi-channel image processing. To be able to use the steinbock Docker container, please install [Docker Desktop](https://docs.docker.com/get-docker/) (Mac OS, Windows) or [Docker Server/Engine](https://docs.docker.com/engine/install/#server) (Linux). Depending on your operating system, additional configuration steps may be necessary as outlined below.
+
+**Running steinbock on Apple M1 systems**: Unfortunately, the steinbock Docker container does not support Apple M1 systems at this point. If you want to follow the workshop using an Apple M1 system, we recommend to run steinbock on a Linux virtual machine instead. Please do not hesitate to [get in touch](mailto:jonas.windhager@uzh.ch) prior to the workshop in this case.
+
+After installing and configuring Docker Desktop or Docker Server/Engine (see below), ensure that you can successfully run the steinbock Docker container:
+1. Open a [Command Prompt (Windows)](https://www.wikihow.com/Open-the-Command-Prompt-in-Windows) or Terminal ([Mac OS](https://support.apple.com/guide/terminal/open-or-quit-terminal-apd5265185d-f365-44cb-8b09-71a064a42125/mac#:~:text=Terminal%20for%20me-,Open%20Terminal,%2C%20then%20double%2Dclick%20Terminal.), Linux)
+2. Type ``docker run ghcr.io/bodenmillergroup/steinbock --version``
+3. Verify that the output reads ``steinbock, version 0.15.0``
+
+If you experience troubles installing/configuring Docker or running the steinbock Docker container, please join the Troubleshooting Session on the first day of the workshop.
+
+### Configure Docker Desktop for Mac
+
+Increase the memory that Docker Desktop is allowed to use as described [here](https://docs.docker.com/desktop/settings/mac/#advanced) (Docker Preferences --> Resources --> Advanced --> Memory). To avoid problems during the workshop, we recommend to set this to roughly 80% of the maximum available system memory.
+
+### Configure Docker Desktop for Windows
+
+Make sure to NOT skip step 5 of the interactive installation instructions (adding your user to the *docker-users* group, if necessary).
+
+Docker Desktop can run in either *Hyper-V mode* or in *WSL 2 mode*. To check/choose in which mode Docker Desktop is running, refer to the preferences menu as described [here](https://docs.docker.com/desktop/settings/windows/#general) (Docker Preferences --> General --> Use the WSL 2 based engine). In general, we recommend to run Docker Desktop in *WSL 2 mode* (i.e., with the "Use the WSL 2 based engine" checkbox ticked).
+
+If and only if Docker Desktop is running in *Hyper-V mode* (i.e., with the "Use the WSL 2 based engine" checkbox grayed out or NOT ticked), increase the memory that Docker Desktop is allowed to use as described [here](https://docs.docker.com/desktop/settings/windows/#advanced) (Docker Preferences --> Resources --> Advanced --> Memory). To avoid problems during the workshop, we recommend to set this to roughly 80% of the maximum available system memory.
+
+### Configure Docker Server/Engine for Linux
+
+To be able to run ``docker`` as non-root user, follow the [Docker Engine post-installation steps](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user).
+
 
 ## Session 3-5
 
