@@ -6,7 +6,7 @@
 
 In session 1, we introduce several alternatives for viewing multi-channel images. Among these alternatives, we present the [napari](https://napari.org) image viewer for Python and the [napari-imc](https://github.com/BodenmillerGroup/napari-imc) plugin. In the workshop, we use [conda](https://docs.conda.io/) environments for installing both napari and napari-imc as follows:
 
-1. [Install Miniconda](https://conda.io/projects/conda/en/stable/user-guide/install/index.html).
+1. [Install Miniconda](https://conda.io/projects/conda/en/stable/user-guide/install/).
 
 2. Open a [Command Prompt (Windows)](https://www.wikihow.com/Open-the-Command-Prompt-in-Windows) or Terminal ([Mac OS](https://support.apple.com/guide/terminal/open-or-quit-terminal-apd5265185d-f365-44cb-8b09-71a064a42125/mac#:~:text=Terminal%20for%20me-,Open%20Terminal,%2C%20then%20double%2Dclick%20Terminal.), Linux).
 
