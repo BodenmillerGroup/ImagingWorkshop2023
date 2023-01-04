@@ -300,7 +300,7 @@ masks when reading them in set `as.is = TRUE`.
 
 ```{r read-images}
 images <- loadImages("data/steinbock/img/")
-masks <- loadImages("data/steinbock/masks_deepcell/", as.is = TRUE)
+masks <- loadImages("data/steinbock/masks/", as.is = TRUE)
 ```
 
 In the case of multi-channel images, it is beneficial to set the `channelNames`
