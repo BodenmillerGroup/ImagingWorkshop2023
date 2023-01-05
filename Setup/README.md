@@ -31,7 +31,7 @@ Other tools for interactive image visualization introduced during the workshop i
 
 In session 2, we use the [steinbock](https://github.com/BodenmillerGroup/steinbock) toolkit for multi-channel image processing. To be able to use the steinbock Docker container, please install [Docker Desktop](https://docs.docker.com/get-docker/) (Mac OS, Windows) or [Docker Server/Engine](https://docs.docker.com/engine/install/#server) (Linux). Depending on your operating system, additional configuration steps may be necessary as outlined below.
 
-**Running steinbock on Apple M1 systems**: Unfortunately, the steinbock Docker container does not support Apple M1 systems at this point. If you want to follow the workshop using an Apple M1 system, we recommend to run steinbock on a Linux virtual machine instead. Please do not hesitate to [get in touch](mailto:jonas.windhager@uzh.ch) prior to the workshop in this case.
+> **Running steinbock on Apple M1 systems**: Unfortunately, the steinbock Docker container does not support Apple M1 systems at this point. If you want to follow the workshop using an Apple M1 system, we recommend to run steinbock on a Linux virtual machine instead. Please do not hesitate to [get in touch](mailto:jonas.windhager@uzh.ch) prior to the workshop in this case.
 
 After installing and configuring Docker Desktop or Docker Server/Engine (see below), ensure that you can successfully run the steinbock Docker container:
 
