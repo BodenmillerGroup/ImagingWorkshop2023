@@ -6,22 +6,36 @@
 
 In session 1, we introduce several alternatives for viewing multi-channel images. Among these alternatives, we present the [napari](https://napari.org) image viewer for Python and the [napari-imc](https://github.com/BodenmillerGroup/napari-imc) plugin. In the workshop, we use [conda](https://docs.conda.io/) environments for installing both napari and napari-imc as follows:
 
+*The following instructions have been updated on January 6, 2023, 6pm CET, following user feedback regarding Apple's M1 system.*  
+*If you have previously created a working napari environment using the old instructions, there is no need to run the new instructions.*
+
 1. [Install Miniconda](https://conda.io/projects/conda/en/stable/user-guide/install/).
 
 2. Open a [Command Prompt (Windows)](https://www.wikihow.com/Open-the-Command-Prompt-in-Windows) or Terminal ([Mac OS](https://support.apple.com/guide/terminal/open-or-quit-terminal-apd5265185d-f365-44cb-8b09-71a064a42125/mac#:~:text=Terminal%20for%20me-,Open%20Terminal,%2C%20then%20double%2Dclick%20Terminal.), Linux).
 
-3. Execute the following commands:
+3. *Not necessary anymore as of January 6, 2023, 6pm CET*  
+   <s>Execute the following commands:</s>  
+   <s>
    ```
    conda create -c conda-forge -n napari -y python=3.10
    conda activate napari
    pip install jupyterlab "napari[all]" napari-imc tifffile pandas
    ```
+   </s>
    
-4. Execute ``conda deactivate`` followed by ``conda activate napari``
-   
-5. Execute ``jupyter-lab`` and verify that jupyter-lab opens.
+4. *Not necessary anymore as of January 6, 2023, 6pm CET*  
+   <s>Execute ``conda deactivate`` followed by ``conda activate napari``</s>  
 
-6. Execute ``napari`` and verify that napari opens.
+5. *New as of January 6, 2023, 6pm CET*  
+   Execute the following commands:  
+   ```
+   conda create -c conda-forge -n napari -y python=3.10 jupyterlab napari napari-imc tifffile pandas
+   conda activate napari
+   ```
+   
+6. Execute ``jupyter-lab`` and verify that jupyter-lab opens.
+
+7. Execute ``napari`` and verify that napari opens.
 
 If you experience troubles installing Anaconda or running jupyter-lab/napari, please join the Troubleshooting Session on the first day of the workshop.
 
