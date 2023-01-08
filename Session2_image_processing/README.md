@@ -4,7 +4,7 @@ This document contains the instructions used in *Section 2: Image processing*.
 
 Please make sure you have cloned/downloaded an up-to-date version of this repository, completed the [setup instructions](../Setup/README.md) and [downloaded the data](../data/README.md).
 
-For questions or help, please employ the *steinbock* `--help` option (after step 2), consult the [workshop slides](https://docs.google.com/presentation/d/1IUnl2lz3iU_D_0grOAbYyBeVrPQDU1dI-RHlX0dt4ko/edit?usp=sharing) or the [steinbock documentation](https://bodenmillergroup.github.io/steinbock/), or raise your hand.
+For questions or help, please employ the *steinbock* `--help` option (after step 2), consult the [workshop slides](https://docs.google.com/presentation/d/1465DGNcyM7nz7ffH-EQ1SVO0oSQm0kZcrkKjeauY-9M/edit?usp=sharing) or the [steinbock documentation](https://bodenmillergroup.github.io/steinbock/), or raise your hand.
 
 
 ## 1. Preparing the data
