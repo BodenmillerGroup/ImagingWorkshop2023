@@ -42,7 +42,7 @@ Session 3-5 will be conducted in R. The R markdown scripts can be found in the i
 | 11.00h      | Hands-on training: interactive image visualization                           |
 | 11.30h      | Lunch                        |
 | 12.30h      | [Multiplexed tissue image processing](https://docs.google.com/presentation/d/1465DGNcyM7nz7ffH-EQ1SVO0oSQm0kZcrkKjeauY-9M/edit?usp=sharing) |
-| 13.00h      | Hands-on training: image processing         |
+| 13.00h      | Hands-on training: multiplexed tissue image processing         |
 | 14.30h      | Coffee break   |
 | 15.00h      | [Reading data into R and visualization](https://docs.google.com/presentation/d/1pOqtJfOQym8Hp6DbMGkZTGivP00zjiIXQ6Dw5mRQpuY/edit?usp=sharing) |
 | 15.30h      | Hands-on training: reading data into R and visualization    |
