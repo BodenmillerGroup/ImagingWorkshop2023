@@ -28,6 +28,6 @@ Launch Jupyter Lab within the `steinbock` directory using the command prompt (Wi
     conda activate napari
     jupyter-lab
     
-In Jupyter Lab, open the notebook `napari_steinbock.ipynb`.
+In Jupyter Lab, open the notebook `Session1_image_visualization/napari_steinbock.ipynb`.
 
 Instructions on how to use the notebook are given in the workshop.
