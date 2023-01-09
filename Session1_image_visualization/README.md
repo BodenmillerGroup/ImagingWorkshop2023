@@ -24,7 +24,7 @@ Instructions on how to use napari with napari-imc are given in the workshop.
 
 Launch Jupyter Lab within the `steinbock` directory using the command prompt (Windows) or the terminal (Mac OS, Linux):
 
-    cd C:\path\to\ImagingWorkshop2023\data\steinbock  # adapt as needed
+    cd C:\path\to\ImagingWorkshop2023  # adapt as needed
     conda activate napari
     jupyter-lab
     
