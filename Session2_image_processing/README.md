@@ -72,7 +72,7 @@ Extract and pre-process IMC acquisitions:
 
     steinbock preprocess imc images --unzip --hpf 50
 
-Inspect the generated multi-channel images in the `img` directory, e.g. using ImageJ/Fiji or napari.
+Inspect the generated multi-channel images in the `img` directory, e.g. using [ImageJ/Fiji](https://fiji.sc) or [napari](https://napari.org).
 
 
 ## 5. Segmenting cells using DeepCell/Mesmer
@@ -81,7 +81,7 @@ Perform Mesmer whole-cell segmentation:
 
     steinbock segment deepcell --app mesmer --minmax
 
-Inspect the generated cell masks in the `masks` directory, e.g. using ImageJ/Fiji or napari.
+Inspect the generated cell masks in the `masks` directory, e.g. using [ImageJ/Fiji](https://fiji.sc) or [napari](https://napari.org).
 
 
 ## 6. Measuring cell intensities
