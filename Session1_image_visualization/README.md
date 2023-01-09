@@ -22,7 +22,7 @@ Instructions on how to use napari with napari-imc are given in the workshop.
 
 ## Using napari from within Python / Jupyter Lab
 
-Launch Jupyter Lab within the `steinbock` directory using the command prompt (Windows) or the terminal (Mac OS, Linux):
+Launch Jupyter Lab within the `ImagingWorkshop2023` directory using the command prompt (Windows) or the terminal (Mac OS, Linux):
 
     cd /path/to/ImagingWorkshop2023  # adapt as needed
     conda activate napari
