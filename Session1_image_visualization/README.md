@@ -17,7 +17,7 @@ Launch napari using the command prompt (Windows) or the terminal (Mac OS, Linux)
 
 In napari, click `File -> Open File(s)...` and open the file `Patient4.mcd`.
 
-Instructions on how to use napari with napari-imc are given in the workshop.
+Instructions on how to use napari-imc are given in the workshop.
 
 
 ## Using napari from within Python / Jupyter Lab
