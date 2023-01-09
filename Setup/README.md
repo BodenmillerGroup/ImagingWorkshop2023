@@ -51,9 +51,9 @@ After installing and configuring Docker Desktop or Docker Server/Engine (see bel
 
 1. Open a [Command Prompt (Windows)](https://www.wikihow.com/Open-the-Command-Prompt-in-Windows) or Terminal ([Mac OS](https://support.apple.com/guide/terminal/open-or-quit-terminal-apd5265185d-f365-44cb-8b09-71a064a42125/mac#:~:text=Terminal%20for%20me-,Open%20Terminal,%2C%20then%20double%2Dclick%20Terminal.), Linux).
 
-2. Execute ``docker run ghcr.io/bodenmillergroup/steinbock --version``.
+2. Execute ``docker run ghcr.io/bodenmillergroup/steinbock:0.15.0 --version``.
 
-3. Verify that the output reads ``steinbock, version 0.15.0``.
+3. Verify that the final output reads ``steinbock, version 0.15.0``.
 
 If you experience troubles installing/configuring Docker or running the steinbock Docker container, please join the Troubleshooting Session on the first day of the workshop.
 
